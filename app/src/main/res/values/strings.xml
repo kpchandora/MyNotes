@@ -1,4 +1,4 @@
 <resources>
-    <string name="app_name">MyNotes</string>
+    <string name="app_name">Notes</string>
     <string name="empty_note_hint">Notes you add appear here</string>
 </resources>

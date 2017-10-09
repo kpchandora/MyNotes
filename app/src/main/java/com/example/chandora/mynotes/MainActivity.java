@@ -7,25 +7,29 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.os.Build;
+import android.support.annotation.RequiresApi;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.ContextMenu;
+import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
+import android.view.Window;
 import android.widget.LinearLayout;
-import android.widget.ListView;
-import android.widget.TextView;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import com.example.chandora.mynotes.NotesContract.NotesEntry;
+import com.miguelcatalan.materialsearchview.MaterialSearchView;
 
 import java.util.ArrayList;
 
@@ -35,20 +39,22 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private LinearLayout emptyLayout;
 
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         fab = (FloatingActionButton) findViewById(R.id.fab);
-        emptyLayout = (LinearLayout)findViewById(R.id.emptyLayout);
+        emptyLayout = (LinearLayout) findViewById(R.id.emptyLayout);
 
         recyclerView = (RecyclerView) findViewById(R.id.recyclerView);
         recyclerView.setHasFixedSize(true);
 //        recyclerView.setLayoutManager(new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL));
-
+//
+//        StaggeredGridLayoutManager manager = new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL);
+//        manager.setGapStrategy(StaggeredGridLayoutManager.GAP_HANDLING_MOVE_ITEMS_BETWEEN_SPANS);
+//        recyclerView.setLayoutManager(manager);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-
-
 
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -59,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+
         fab.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View view) {
@@ -68,10 +75,10 @@ public class MainActivity extends AppCompatActivity {
         });
 
         displayDatabaseInfo();
-
         registerForContextMenu(recyclerView);
 
     }
+
 
     @Override
     public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
@@ -89,14 +96,14 @@ public class MainActivity extends AppCompatActivity {
         int idOfNote = 0;
 
         try {
-            position = ((NotesAdapter)recyclerView.getAdapter()).getMPosition();
-        }catch (Exception e){
+            position = ((NotesAdapter) recyclerView.getAdapter()).getMPosition();
+        } catch (Exception e) {
             return super.onContextItemSelected(item);
         }
 
         switch (item.getItemId()) {
             case R.id.delete_note:
-                idOfNote = ((NotesAdapter)recyclerView.getAdapter()).getIdOfNote();
+                idOfNote = ((NotesAdapter) recyclerView.getAdapter()).getIdOfNote();
                 deleteNote(idOfNote);
                 Toast.makeText(this, "Deleted", Toast.LENGTH_SHORT).show();
                 return true;
@@ -119,7 +126,7 @@ public class MainActivity extends AppCompatActivity {
         SQLiteDatabase db = dbHelper.getWritableDatabase();
 
         String selection = NotesEntry._ID + " = ? ";
-        String[] selectionArgs = {String .valueOf(data)};
+        String[] selectionArgs = {String.valueOf(data)};
 
         db.delete(NotesEntry.TABLE_NAME, selection, selectionArgs);
 
@@ -132,7 +139,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         displayDatabaseInfo();
+
     }
+
 
     private void displayDatabaseInfo() {
 
@@ -179,20 +188,17 @@ public class MainActivity extends AppCompatActivity {
 
         db.close();
 
-
         NotesAdapter adapter = new NotesAdapter(this, noteList);
 
-        if (adapter.getItemCount() == 0){
+        if (adapter.getItemCount() == 0) {
             recyclerView.setVisibility(View.GONE);
             emptyLayout.setVisibility(View.VISIBLE);
-        }else {
+        } else {
             emptyLayout.setVisibility(View.GONE);
             recyclerView.setVisibility(View.VISIBLE);
         }
-
         recyclerView.setAdapter(adapter);
         adapter.notifyDataSetChanged();
-//        noteList.clear();
     }
 
 }

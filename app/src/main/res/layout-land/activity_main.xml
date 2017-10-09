@@ -45,11 +45,8 @@
     <LinearLayout
         android:id="@+id/emptyLayout"
         android:layout_width="0dp"
-        android:layout_height="495dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginLeft="8dp"
-        android:layout_marginRight="8dp"
-        android:layout_marginStart="8dp"
+        android:layout_height="295dp"
+        android:layout_margin="8dp"
         android:gravity="center"
         android:orientation="vertical"
         android:visibility="gone"
