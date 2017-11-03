@@ -27,8 +27,8 @@ public class DbHelper extends SQLiteOpenHelper {
 
         String CREATE_TABLE_QUERY = "CREATE TABLE " + NotesEntry.TABLE_NAME +
                 "( " + NotesEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                NotesEntry.COLUMN_NAME + " TEXT , "+
-                NotesEntry.CURRENT_TIME+" TEXT);";
+                NotesEntry.COLUMN_NAME + " TEXT , " +
+                NotesEntry.CURRENT_TIME + " TEXT);";
 
         db.execSQL(CREATE_TABLE_QUERY);
 
@@ -38,9 +38,10 @@ public class DbHelper extends SQLiteOpenHelper {
     @Override
     public void onUpgrade(SQLiteDatabase db, int i, int i1) {
 
-        String query = "DROP TABLE IF EXISTS "+NotesEntry.TABLE_NAME;
+        String query = "DROP TABLE IF EXISTS " + NotesEntry.TABLE_NAME;
 
         db.execSQL(query);
+        onCreate(db);
 
     }
 

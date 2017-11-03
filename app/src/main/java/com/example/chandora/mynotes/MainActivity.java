@@ -6,30 +6,23 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
+import android.support.annotation.NonNull;
 import android.support.annotation.RequiresApi;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.StaggeredGridLayoutManager;
-import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.ContextMenu;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.Window;
 import android.widget.LinearLayout;
-import android.widget.RelativeLayout;
 import android.widget.Toast;
-
 import com.example.chandora.mynotes.NotesContract.NotesEntry;
-import com.miguelcatalan.materialsearchview.MaterialSearchView;
+import com.google.firebase.auth.FirebaseAuth;
 
 import java.util.ArrayList;
 
@@ -38,12 +31,15 @@ public class MainActivity extends AppCompatActivity {
     private FloatingActionButton fab;
     private RecyclerView recyclerView;
     private LinearLayout emptyLayout;
+    private FirebaseAuth mAuth;
+    private FirebaseAuth.AuthStateListener stateListener;
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        mAuth = FirebaseAuth.getInstance();
         fab = (FloatingActionButton) findViewById(R.id.fab);
         emptyLayout = (LinearLayout) findViewById(R.id.emptyLayout);
 
@@ -55,6 +51,16 @@ public class MainActivity extends AppCompatActivity {
 //        manager.setGapStrategy(StaggeredGridLayoutManager.GAP_HANDLING_MOVE_ITEMS_BETWEEN_SPANS);
 //        recyclerView.setLayoutManager(manager);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+        stateListener = new FirebaseAuth.AuthStateListener() {
+            @Override
+            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
+                if (firebaseAuth.getCurrentUser() == null){
+                    startActivity(new Intent(MainActivity.this, SignInActivity.class));
+                    finish();
+                }
+            }
+        };
 
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -79,6 +85,24 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main_menu, menu);
+
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        switch (item.getItemId()){
+            case R.id.signOut:
+                mAuth.signOut();
+                return true;
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
 
     @Override
     public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
@@ -138,10 +162,19 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
+
+        mAuth.addAuthStateListener(stateListener);
+
         displayDatabaseInfo();
 
     }
 
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        finish();
+
+    }
 
     private void displayDatabaseInfo() {
 
@@ -166,6 +199,7 @@ public class MainActivity extends AppCompatActivity {
                 null,
                 sortOrder
         );
+
 
         ArrayList<Notes> noteList = new ArrayList<>();
 
