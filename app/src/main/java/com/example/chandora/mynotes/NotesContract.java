@@ -14,13 +14,13 @@ public final class NotesContract {
 
     public static final class NotesEntry implements BaseColumns{
 
-        public static final String TABLE_NAME = "mynotes";
+        public static final String TABLE_NAME = "notes_new_table";
 
         public static final String _ID = BaseColumns._ID;
 
         public static final String COLUMN_NAME = "note";
 
-        public static final String CURRENT_TIME = "current_time";
+        public static final String FIREBASE_KEY = "firebase_key";
 
     }
 

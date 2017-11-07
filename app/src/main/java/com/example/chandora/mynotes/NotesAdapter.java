@@ -28,6 +28,7 @@ public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.MyHolder> {
     private int idOfNote;
     private String stringNote;
     private int rowIndex = -1;
+    private String firebaseId = null;
 
     public NotesAdapter(Context context, ArrayList<Notes> notes) {
         this.context = context;
@@ -58,12 +59,16 @@ public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.MyHolder> {
                 setPosition(holder.getAdapterPosition());
                 idOfNote = notesList.get(getMPosition()).getId();
                 stringNote = notesList.get(getMPosition()).getData();
-
+                firebaseId = notesList.get(getMPosition()).getFirebaseKey();
                 return false;
             }
         });
 
 
+    }
+
+    public String getFirebaseId(){
+        return firebaseId;
     }
 
     @Override
@@ -121,14 +126,15 @@ public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.MyHolder> {
             Notes note = notes.get(position);
             int noteId = note.getId();
             String noteData = note.getData();
-            String time = note.getTime();
+            String firebaseKeyData = note.getFirebaseKey();
 
             Intent i = new Intent(ctx, Main2Activity.class);
             i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             i.putExtra("ID", noteId);
             i.putExtra("NOTE", noteData);
-            i.putExtra("TIME", time);
             i.putExtra("TAG", 0);
+            i.putExtra("Position", position);
+            i.putExtra("FIREBASE_KEY", firebaseKeyData);
             ctx.startActivity(i);
 
         }

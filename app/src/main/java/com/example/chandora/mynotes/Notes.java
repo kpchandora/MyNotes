@@ -8,12 +8,21 @@ public class Notes {
 
     private int id;
     private String data;
-    private String time;
+    private String firebaseKey;
 
-    public Notes(int id, String data, String time) {
+    public Notes(){
+
+    }
+
+    public Notes(int id, String data, String firebaseKey) {
         this.id = id;
         this.data = data;
-        this.time = time;
+        this.firebaseKey = firebaseKey;
+
+    }
+
+    public String getFirebaseKey() {
+        return firebaseKey;
     }
 
     public int getId() {
@@ -24,7 +33,5 @@ public class Notes {
         return data;
     }
 
-    public String getTime() {
-        return time;
-    }
+
 }

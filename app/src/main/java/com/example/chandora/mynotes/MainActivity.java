@@ -2,6 +2,7 @@ package com.example.chandora.mynotes;
 
 import android.content.ClipData;
 import android.content.ClipboardManager;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
@@ -14,6 +15,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.ContextMenu;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -21,10 +23,17 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.Toast;
+
 import com.example.chandora.mynotes.NotesContract.NotesEntry;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
+import java.util.Collections;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -33,17 +42,21 @@ public class MainActivity extends AppCompatActivity {
     private LinearLayout emptyLayout;
     private FirebaseAuth mAuth;
     private FirebaseAuth.AuthStateListener stateListener;
+    private DatabaseReference mFirebaseRef;
+    private FirebaseDatabase mFirebaseDatabase;
+
+    ArrayList<Notes> noteList;
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        mAuth = FirebaseAuth.getInstance();
+
         fab = (FloatingActionButton) findViewById(R.id.fab);
         emptyLayout = (LinearLayout) findViewById(R.id.emptyLayout);
-
         recyclerView = (RecyclerView) findViewById(R.id.recyclerView);
+        noteList = new ArrayList<>();
         recyclerView.setHasFixedSize(true);
 //        recyclerView.setLayoutManager(new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL));
 //
@@ -52,11 +65,21 @@ public class MainActivity extends AppCompatActivity {
 //        recyclerView.setLayoutManager(manager);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
+        mAuth = FirebaseAuth.getInstance();
+        mFirebaseDatabase = FirebaseDatabase.getInstance();
+//        mFirebaseDatabase.setPersistenceEnabled(true);
+
+
+        if (mAuth.getCurrentUser() != null) {
+            mFirebaseRef = mFirebaseDatabase.getReference().child("Notes").child(mAuth.getCurrentUser().getUid());
+        }
+
         stateListener = new FirebaseAuth.AuthStateListener() {
             @Override
             public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
-                if (firebaseAuth.getCurrentUser() == null){
-                    startActivity(new Intent(MainActivity.this, SignInActivity.class));
+                if (firebaseAuth.getCurrentUser() == null) {
+                    startActivity(new Intent(MainActivity.this, SignInActivity.class)
+                            .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
                     finish();
                 }
             }
@@ -86,25 +109,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.main_menu, menu);
-
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-
-        switch (item.getItemId()){
-            case R.id.signOut:
-                mAuth.signOut();
-                return true;
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
-
-    @Override
     public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
         super.onCreateContextMenu(menu, v, menuInfo);
 
@@ -116,19 +120,20 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onContextItemSelected(MenuItem item) {
 
-        int position = -1;
+//        int position = -1;
         int idOfNote = 0;
-
-        try {
-            position = ((NotesAdapter) recyclerView.getAdapter()).getMPosition();
-        } catch (Exception e) {
-            return super.onContextItemSelected(item);
-        }
+        String firebaseId;
+//        try {
+//            position = ((NotesAdapter) recyclerView.getAdapter()).getMPosition();
+//        } catch (Exception e) {
+//            return super.onContextItemSelected(item);
+//        }
 
         switch (item.getItemId()) {
             case R.id.delete_note:
                 idOfNote = ((NotesAdapter) recyclerView.getAdapter()).getIdOfNote();
-                deleteNote(idOfNote);
+                firebaseId = ((NotesAdapter) recyclerView.getAdapter()).getFirebaseId();
+                deleteNote(idOfNote, firebaseId);
                 Toast.makeText(this, "Deleted", Toast.LENGTH_SHORT).show();
                 return true;
             case R.id.copy_content:
@@ -143,11 +148,12 @@ public class MainActivity extends AppCompatActivity {
         return super.onContextItemSelected(item);
     }
 
-    public void deleteNote(int data) {
+    public void deleteNote(int data, String fId) {
 
         DbHelper dbHelper = new DbHelper(this);
-
         SQLiteDatabase db = dbHelper.getWritableDatabase();
+
+        mFirebaseRef.child(fId).removeValue();
 
         String selection = NotesEntry._ID + " = ? ";
         String[] selectionArgs = {String.valueOf(data)};
@@ -163,17 +169,20 @@ public class MainActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
 
-        mAuth.addAuthStateListener(stateListener);
-
         displayDatabaseInfo();
+        mAuth.addAuthStateListener(stateListener);
+    }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        displayDatabaseInfo();
     }
 
     @Override
     public void onBackPressed() {
         super.onBackPressed();
         finish();
-
     }
 
     private void displayDatabaseInfo() {
@@ -185,7 +194,7 @@ public class MainActivity extends AppCompatActivity {
         String[] projection = {
                 NotesEntry._ID,
                 NotesEntry.COLUMN_NAME,
-                NotesEntry.CURRENT_TIME
+                NotesEntry.FIREBASE_KEY
         };
 
         String sortOrder = NotesEntry._ID + " DESC";
@@ -201,20 +210,21 @@ public class MainActivity extends AppCompatActivity {
         );
 
 
-        ArrayList<Notes> noteList = new ArrayList<>();
-
         try {
 
             int noteColumn = cursor.getColumnIndex(NotesEntry.COLUMN_NAME);
-            int timeColumn = cursor.getColumnIndex(NotesEntry.CURRENT_TIME);
             int idColumn = cursor.getColumnIndex(NotesEntry._ID);
+            int firebaseIdColumn = cursor.getColumnIndex(NotesEntry.FIREBASE_KEY);
+
+            noteList.clear();
 
             while (cursor.moveToNext()) {
                 String currentNote = cursor.getString(noteColumn);
-                String currentTime = cursor.getString(timeColumn);
+                String firebaseKey = cursor.getString(firebaseIdColumn);
                 int currentId = cursor.getInt(idColumn);
-                Notes notes = new Notes(currentId, currentNote, currentTime);
+                Notes notes = new Notes(currentId, currentNote, firebaseKey);
                 noteList.add(notes);
+
             }
         } finally {
             cursor.close();
@@ -222,7 +232,42 @@ public class MainActivity extends AppCompatActivity {
 
         db.close();
 
-        NotesAdapter adapter = new NotesAdapter(this, noteList);
+        if (mAuth.getCurrentUser() != null) {
+
+            mFirebaseRef.addValueEventListener(new ValueEventListener() {
+                @Override
+                public void onDataChange(DataSnapshot dataSnapshot) {
+
+
+                    if (noteList.isEmpty()) {
+
+                        Log.d("TAG", "In add value");
+                        for (DataSnapshot firebaseData : dataSnapshot.getChildren()) {
+                            Notes notes = firebaseData.getValue(Notes.class);
+                            noteList.add(notes);
+                            if (notes != null) {
+                                String noteData = notes.getData();
+                                String fireKey = notes.getFirebaseKey();
+                                insertNote(fireKey, noteData);
+                                Log.d("Data", noteData);
+                            }
+
+                        }
+                        Collections.reverse(noteList);
+                        displayDatabaseInfo();
+
+                    }
+
+                }
+
+                @Override
+                public void onCancelled(DatabaseError databaseError) {
+
+                }
+            });
+        }
+        Log.d("ListL", noteList.toString());
+        NotesAdapter adapter = new NotesAdapter(getApplicationContext(), noteList);
 
         if (adapter.getItemCount() == 0) {
             recyclerView.setVisibility(View.GONE);
@@ -233,6 +278,19 @@ public class MainActivity extends AppCompatActivity {
         }
         recyclerView.setAdapter(adapter);
         adapter.notifyDataSetChanged();
+
+    }
+    private void insertNote(String fireKey, String notesData){
+
+        DbHelper dbHelper = new DbHelper(this);
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(NotesEntry.FIREBASE_KEY, fireKey);
+        values.put(NotesEntry.COLUMN_NAME, notesData);
+
+        db.insertWithOnConflict(NotesEntry.TABLE_NAME, null, values, SQLiteDatabase.CONFLICT_REPLACE);
+
+
     }
 
 }

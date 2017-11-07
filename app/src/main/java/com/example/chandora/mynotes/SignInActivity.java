@@ -4,11 +4,7 @@ import android.content.Intent;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.view.View;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.auth.api.Auth;
@@ -30,15 +26,10 @@ import com.google.firebase.auth.GoogleAuthProvider;
 public class SignInActivity extends AppCompatActivity implements View.OnClickListener {
 
     private static final int RC_SIGN_IN = 0;
-    private static  int TAG = 0;
     private FirebaseAuth mFirebaseAuth;
     private GoogleApiClient mGoogleApiClient;
     private SignInButton signInButton;
     private FirebaseAuth.AuthStateListener mAuthStateListener;
-
-    private EditText emailText, passwordText;
-    private TextView createAccountText;
-    private Button loginInButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,10 +37,6 @@ public class SignInActivity extends AppCompatActivity implements View.OnClickLis
         setContentView(R.layout.activity_sign_in);
 
         signInButton = (SignInButton) findViewById(R.id.sign_in_button);
-        emailText = (EditText) findViewById(R.id.emailEditText);
-        passwordText = (EditText) findViewById(R.id.passwordEditText);
-        createAccountText = (TextView) findViewById(R.id.createAccountText);
-        loginInButton = (Button) findViewById(R.id.loginButton);
         mFirebaseAuth = FirebaseAuth.getInstance();
 
         mAuthStateListener = new FirebaseAuth.AuthStateListener() {
@@ -58,30 +45,14 @@ public class SignInActivity extends AppCompatActivity implements View.OnClickLis
 
                 final FirebaseUser mUser = firebaseAuth.getCurrentUser();
 
-
                 if (mUser != null) {
-
-                   boolean emailVerified = mUser.isEmailVerified();
-
-                    if (emailVerified) {
-                        startActivity(new Intent(SignInActivity.this, MainActivity.class)
-                                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
-                        finish();
-                    }
-
+                    startActivity(new Intent(SignInActivity.this, MainActivity.class)
+                            .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
+                    finish();
                 }
-
-
             }
         };
 
-        createAccountText.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent i = new Intent(SignInActivity.this, CreateAccount.class);
-                startActivity(i);
-            }
-        });
 
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestIdToken(getString(R.string.default_web_client_id))
@@ -99,7 +70,6 @@ public class SignInActivity extends AppCompatActivity implements View.OnClickLis
                 .build();
 
         signInButton.setOnClickListener(this);
-        loginInButton.setOnClickListener(this);
 
     }
 
@@ -134,39 +104,9 @@ public class SignInActivity extends AppCompatActivity implements View.OnClickLis
             case R.id.sign_in_button:
                 signIn();
                 break;
-            case R.id.loginButton:
-                signInWithEmail();
         }
     }
 
-    private void signInWithEmail() {
-
-        String email = emailText.getText().toString().trim();
-        String password = passwordText.getText().toString().trim();
-
-
-        if (TextUtils.isEmpty(email) || TextUtils.isEmpty(password)) {
-
-            Toast.makeText(this, "Fields are empty", Toast.LENGTH_LONG).show();
-
-        } else {
-
-
-            mFirebaseAuth.signInWithEmailAndPassword(email, password)
-                    .addOnCompleteListener(new OnCompleteListener<AuthResult>() {
-                        @Override
-                        public void onComplete(@NonNull Task<AuthResult> task) {
-                            if (!task.isSuccessful()) {
-                                Toast.makeText(SignInActivity.this, "Failed...", Toast.LENGTH_LONG).show();
-                            }else {
-                                TAG = 1;
-                            }
-                        }
-                    });
-        }
-
-
-    }
 
     private void signIn() {
         Intent signInIntent = Auth.GoogleSignInApi.getSignInIntent(mGoogleApiClient);
@@ -203,8 +143,6 @@ public class SignInActivity extends AppCompatActivity implements View.OnClickLis
                         }
                     }
                 });
-
     }
-
 
 }

@@ -15,7 +15,7 @@ import com.example.chandora.mynotes.NotesContract.NotesEntry;
 
 public class DbHelper extends SQLiteOpenHelper {
 
-    private static final String DB_NAME = "mynewnotes.db";
+    private static final String DB_NAME = "notes_new_db.db";
     private static final int DB_VERSION = 1;
 
     public DbHelper(Context context) {
@@ -27,8 +27,7 @@ public class DbHelper extends SQLiteOpenHelper {
 
         String CREATE_TABLE_QUERY = "CREATE TABLE " + NotesEntry.TABLE_NAME +
                 "( " + NotesEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                NotesEntry.COLUMN_NAME + " TEXT , " +
-                NotesEntry.CURRENT_TIME + " TEXT);";
+                NotesEntry.COLUMN_NAME + " TEXT, " + NotesEntry.FIREBASE_KEY + " TEXT );";
 
         db.execSQL(CREATE_TABLE_QUERY);
 
